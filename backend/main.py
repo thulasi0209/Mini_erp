@@ -1,4 +1,7 @@
+import uvicorn
+
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import engine, Base, SessionLocal
 from models import Vendor, PurchaseOrder, Inventory
@@ -12,6 +15,14 @@ app = FastAPI(
     title="Mini ERP",
     description="A simple Enterprise Resource Planning system",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Dependency to get database session
@@ -43,6 +54,8 @@ def create_vendor(vendor: CreateVendor, db: Session = Depends(get_db)):
     - **name**: Vendor name
     - **phone**: Vendor phone number
     """
+    print("POST /vendors received:", vendor.dict())
+
     # Create new vendor object
     new_vendor = Vendor(name=vendor.name, phone=vendor.phone)
     
@@ -151,3 +164,7 @@ def get_inventory(db: Session = Depends(get_db)):
     """Get all inventory items"""
     inventory_items = db.query(Inventory).all()
     return inventory_items
+
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=False)
