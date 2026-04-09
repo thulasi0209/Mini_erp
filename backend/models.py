@@ -30,3 +30,4 @@ class Inventory(Base):
     id = Column(Integer, primary_key=True, index=True)
     item_name = Column(String, index=True)
     quantity = Column(Integer)
+    is_read = Column(Integer, default=0)  # ADDED: Track read status (0=unread, 1=read)

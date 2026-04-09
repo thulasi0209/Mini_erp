@@ -7,8 +7,21 @@ from database import engine, Base, SessionLocal
 from models import Vendor, PurchaseOrder, Inventory
 from schemas import CreateVendor, ShowVendor, CreateOrder, ShowOrder, ShowInventory
 
+# ADDED: Auto-migrate database on startup
+def run_migrations():
+    """Auto-run database migrations on startup"""
+    try:
+        import migrate_add_is_read
+        print("[Startup] Running database migrations...")
+        migrate_add_is_read.migrate()
+    except Exception as e:
+        print(f"[Startup] Migration error (non-critical): {e}")
+
 # Create all database tables
 Base.metadata.create_all(bind=engine, checkfirst=True)
+
+# ADDED: Run migrations on startup
+run_migrations()
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -41,6 +54,23 @@ def read_root():
         "message": "Welcome to Mini ERP API",
         "status": "running",
         "version": "1.0.0"
+    }
+
+
+# ADDED: Health check endpoint
+@app.get("/health")
+def health_check():
+    """Health check endpoint for debugging"""
+    return {
+        "status": "healthy",
+        "version": "1.0.0",
+        "endpoints": {
+            "inventory_get": "/inventory (GET)",
+            "inventory_mark_read": "/inventory/{item_id}/mark-read (PUT)",
+            "orders_get": "/orders (GET)",
+            "orders_create": "/orders (POST)",
+            "orders_receive": "/orders/{order_id}/receive (POST)"
+        }
     }
 
 
@@ -164,6 +194,26 @@ def get_inventory(db: Session = Depends(get_db)):
     """Get all inventory items"""
     inventory_items = db.query(Inventory).all()
     return inventory_items
+
+
+@app.put("/inventory/{item_id}/mark-read", response_model=ShowInventory)
+def mark_inventory_read(item_id: int, db: Session = Depends(get_db)):
+    """
+    Mark an inventory item as read
+    
+    - **item_id**: ID of the inventory item
+    """
+    item = db.query(Inventory).filter(Inventory.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+    
+    # ADDED: Toggle read status
+    item.is_read = 1 if item.is_read == 0 else 0
+    
+    db.commit()
+    db.refresh(item)
+    
+    return item
 
 
 if __name__ == "__main__":

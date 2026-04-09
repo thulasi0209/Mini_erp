@@ -47,6 +47,7 @@ class ShowInventory(BaseModel):
     id: int
     item_name: str
     quantity: int
+    is_read: int = 0  # ADDED: Include read status in response
 
     class Config:
         from_attributes = True
